@@ -5,7 +5,10 @@ import streamlit as st
 import plotly.express as px
 from pathlib import PurePath
 
-@st.cache
+
+# @st.cache
+
+
 def init():
     with open(PurePath(os.getcwd(), 'constants.json'), encoding='utf-8') as json_file:
         files = json.load(json_file)
@@ -15,13 +18,15 @@ def init():
         PurePath(os.getcwd(), 'data', 'metrics.csv'), encoding='utf-8')
     return files, sales, relations
 
-@st.cache
+# @st.cache
+
+
 def set_table():
     df = relations.loc[(relations['estado'] == region) & (
         relations['canal'] == channel) & (relations['gec'] == gec), ['prod_A', 'prod_B', 'lift']]
     df = sales.merge(df, left_on='product', right_on='prod_A', how='inner')
     df = df.sort_values(by='sales')
-    
+
     values_order_1 = df['product'].unique()[:n_sku]
     values_order_2 = df['product'].unique()[n_sku * -1:]
 
@@ -38,8 +43,11 @@ def set_table():
             ndata = data.iloc[i]
             sub_values.append(ndata['prod_B'])
         values.append(sub_values)
-    
-    df1 = pd.DataFrame(data=values, index=index, columns=['No. {}'.format(str(x)) for x in range(1, n_top+1)])
+
+    index = pd.Index(index, name="SKU ancla")
+    df1 = pd.DataFrame(data=values, index=index, columns=[
+                       'No. {}'.format(str(x)) for x in range(1, n_top+1)])
+    df1 = df1.reset_index()
 
     values = []
     index = []
@@ -54,11 +62,17 @@ def set_table():
             ndata = data.iloc[i]
             sub_values.append(ndata['prod_B'])
         values.append(sub_values)
+    
+    index = pd.Index(index, name="SKU ancla")
+    df2 = pd.DataFrame(data=values, index=index, columns=[
+                       'No. {}'.format(str(x)) for x in range(1, n_top+1)])
+    df2 = df2.reset_index()
 
-    df2 = pd.DataFrame(data=values, index=index, columns=['No. {}'.format(str(x)) for x in range(1, n_top+1)])
-    return df1, df2, df[['product','category']]
+    return df1, df2, df[['product', 'category']]
 
-@st.cache
+# @st.cache
+
+
 def set_secund_table():
     df = relations.loc[(relations['prod_A'] == sku_ancla) & (
         relations['category_b'] == level_venta), ['prod_B', 'estado', 'canal', 'gec', 'lift', 'sales_b', 'support_b', 'category_b']]
@@ -70,18 +84,29 @@ def set_secund_table():
     df = df.head(No_skus_top)
     df.rename({'prod_B': 'Producto (B)', 'sales_b': 'Venta (B)',
                          'lift': 'Lift', 'support_b': 'Support (B)'}, axis=1, inplace=True)
+    df = df.reset_index(drop=True)
     return df
 
-@st.cache
+# @st.cache
+
+
 def set_options():
     return sales.loc[sales['category'] == sku_segment, 'product'].values
 
-@st.cache
+# @st.cache
+
+
 def validation_oportunity(value, x0, x1, y0, y1):
     if value['Lift'] >= x0 and value['Lift'] <= x1 and value['Venta (B)'] >= y0 and value['Venta (B)'] <= y1:
         return "Alta probabilidad"
     else:
         return "Baja probabilidad"
+
+def local_css():
+    curdir = os.path.dirname(os.path.realpath(__file__)) + r'\\'
+    css_file = os.path.join(curdir, 'style.css')
+    with open(css_file) as f:
+        st.markdown('<style>{}</style>'.format(f.read()), unsafe_allow_html=True)
 
 
 # ---------------------------------------------------------------------------- #
@@ -93,7 +118,8 @@ st.set_page_config(page_title="Market Basket Analysis (MBA)",
                    page_icon="🛒")
 
 constants_var, sales, relations = init()
-st.markdown(constants_var['hide_streamlit_style'], unsafe_allow_html=True)
+local_css()
+
 # ---------------------------------------------------------------------------- #
 # ------------------------------- Elementos Top ------------------------------ #
 # Logo
@@ -126,36 +152,25 @@ with col4[0]:
         label="Estado / Region geografica", options=constants_var['state'], index=0)
 with col5[0]:
     n_top = st.number_input(min_value=5, max_value=20,
-                            value=10, step=5, label="Ranking SKU's (Top / But)")
+                            value=10, step=5, label="Ranking SKU's (Top / Buttom)")
 
 st.markdown("***")
 
 data_first, data_last, data_f = set_table()
 
-# col14 = st.columns(1)
-
-# col14[0].header("Histograma de relaciones por categoria")
-
-# with col14[0]:
-#     venta_2 = data_f.copy()
-#     venta_2 = venta_2.groupby(by='category').count()
-#     venta_2.columns = ['No. de productos']
-#     st.bar_chart(venta_2, use_container_width=True)
-
-# st.markdown("***")
-
 # ---------------------------------------------------------------------------- #
 # --------------------------- Table visualization ---------------------------- #
 col6 = st.columns(1)
-col6[0].header("Top {} de productos a recomendar al cliente".format(str(n_top)))
-
+col6[0].header(
+    "Top {} de productos a recomendar al cliente".format(str(n_top)))
 
 
 with col6[0]:
     st.dataframe(data_first, height=2000)
 
 col7 = st.columns(1)
-col7[0].header("Top {} de productos con menor probabilidad de venta".format(str(n_top)))
+col7[0].header(
+    "Top {} de productos con menor probabilidad de venta".format(str(n_top)))
 
 with col7[0]:
     st.dataframe(data_last, height=2000)
@@ -175,9 +190,9 @@ col8[0].header("Filtros de informacion")
 
 with col8[0]:
     sku_segment = st.selectbox(
-        label="Segmento SKU PIVOTE", options=constants_var['segment'], index=0)
+        label="Segmento SKU ancla", options=constants_var['segment'], index=0)
 with col9[0]:
-    sku_ancla = st.selectbox(label="SKU PIVOTE",
+    sku_ancla = st.selectbox(label="SKU ancla",
                              options=set_options(), index=0)
 with col10[0]:
     level_venta = st.selectbox(
@@ -192,7 +207,7 @@ with col12[0]:
 st.markdown("***")
 
 col13 = st.columns(2)
-col13[0].header("Top {} de productos {} relacionados al producto PIVOTE".format(
+col13[0].header("Top {} de productos {} relacionados al producto ancla".format(
     No_skus_top, 'Mas' if type_order == 'TOP' else 'Menos'))
 data = set_secund_table()
 
@@ -233,4 +248,3 @@ with col13[1]:
 
     st.plotly_chart(
         plot3, config={'displayModeBar': False}, use_container_width=True)
-
