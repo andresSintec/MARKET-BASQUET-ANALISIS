@@ -6,9 +6,7 @@ import plotly.express as px
 from pathlib import PurePath
 
 
-# @st.cache
-
-
+@st.cache
 def init():
     with open(PurePath(os.getcwd(), 'constants.json'), encoding='utf-8') as json_file:
         files = json.load(json_file)
@@ -18,9 +16,7 @@ def init():
         PurePath(os.getcwd(), 'data', 'metrics.csv'), encoding='utf-8')
     return files, sales, relations
 
-# @st.cache
-
-
+@st.cache
 def set_table():
     df = relations.loc[(relations['estado'] == region) & (
         relations['canal'] == channel) & (relations['gec'] == gec), ['prod_A', 'prod_B', 'lift']]
@@ -70,9 +66,7 @@ def set_table():
 
     return df1, df2, df[['product', 'category']]
 
-# @st.cache
-
-
+@st.cache
 def set_secund_table():
     df = relations.loc[(relations['prod_A'] == sku_ancla) & (
         relations['category_b'] == level_venta), ['prod_B', 'estado', 'canal', 'gec', 'lift', 'sales_b', 'support_b', 'category_b']]
@@ -87,15 +81,11 @@ def set_secund_table():
     df = df.reset_index(drop=True)
     return df
 
-# @st.cache
-
-
+@st.cache
 def set_options():
     return sales.loc[sales['category'] == sku_segment, 'product'].values
 
-# @st.cache
-
-
+@st.cache
 def validation_oportunity(value, x0, x1, y0, y1):
     if value['Lift'] >= x0 and value['Lift'] <= x1 and value['Venta (B)'] >= y0 and value['Venta (B)'] <= y1:
         return "Alta probabilidad"
@@ -103,9 +93,8 @@ def validation_oportunity(value, x0, x1, y0, y1):
         return "Baja probabilidad"
 
 def local_css():
-    curdir = os.path.dirname(os.path.realpath(__file__)) + r'\\'
-    css_file = os.path.join(curdir, 'style.css')
-    with open(css_file) as f:
+    path = PurePath(os.getcwd(),'style.css')
+    with open(path) as f:
         st.markdown('<style>{}</style>'.format(f.read()), unsafe_allow_html=True)
 
 
