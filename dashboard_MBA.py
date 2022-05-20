@@ -4,6 +4,7 @@ import pandas as pd
 import streamlit as st
 import plotly.express as px
 from pathlib import PurePath
+import plotly.graph_objects as go
 
 
 @st.cache
@@ -15,6 +16,7 @@ def init():
     relations = pd.read_csv(
         PurePath(os.getcwd(), 'data', 'metrics.csv'), encoding='utf-8')
     return files, sales, relations
+
 
 @st.cache
 def set_table():
@@ -58,13 +60,14 @@ def set_table():
             ndata = data.iloc[i]
             sub_values.append(ndata['prod_B'])
         values.append(sub_values)
-    
+
     index = pd.Index(index, name="SKU ancla")
     df2 = pd.DataFrame(data=values, index=index, columns=[
                        'No. {}'.format(str(x)) for x in range(1, n_top+1)])
     df2 = df2.reset_index()
 
     return df1, df2, df[['product', 'category']]
+
 
 @st.cache
 def set_secund_table():
@@ -81,21 +84,25 @@ def set_secund_table():
     df = df.reset_index(drop=True)
     return df
 
+
 @st.cache
 def set_options():
     return sales.loc[sales['category'] == sku_segment, 'product'].values
 
+
 @st.cache
 def validation_oportunity(value, x0, x1, y0, y1):
     if value['Lift'] >= x0 and value['Lift'] <= x1 and value['Venta (B)'] >= y0 and value['Venta (B)'] <= y1:
-        return "Alta probabilidad"
+        return "Oportunidad de incremento en venta"
     else:
-        return "Baja probabilidad"
+        return ""
+
 
 def local_css():
-    path = PurePath(os.getcwd(),'style.css')
+    path = PurePath(os.getcwd(), 'style.css')
     with open(path) as f:
-        st.markdown('<style>{}</style>'.format(f.read()), unsafe_allow_html=True)
+        st.markdown('<style>{}</style>'.format(f.read()),
+                    unsafe_allow_html=True)
 
 
 # ---------------------------------------------------------------------------- #
@@ -197,7 +204,7 @@ st.markdown("***")
 
 col13 = st.columns(2)
 col13[0].header("Top {} de productos {} relacionados al producto ancla".format(
-    No_skus_top, 'Mas' if type_order == 'TOP' else 'Menos'))
+    No_skus_top, 'más' if type_order == 'TOP' else 'menos'))
 data = set_secund_table()
 
 with col13[0]:
@@ -210,6 +217,7 @@ st.markdown("***")
 col13[1].header("Oportunidades de Impulso de Productos")
 
 with col13[1]:
+
     impulso_venta = data.copy()
 
     x_0 = ((impulso_venta["Lift"].max(
@@ -222,9 +230,19 @@ with col13[1]:
         lambda x: validation_oportunity(x, x_0, x_1, y_0, y_1), axis=1)
 
     plot3 = px.scatter(impulso_venta, x="Lift", y="Venta (B)",
-                       color="category", size="Support (B)", text="Producto (B)", log_x=True)
+                       color="category", size="Support (B)",
+                       hover_data=[
+                           'Producto (B)', 'category', 'Venta (B)', 'Support (B)'],
+                       log_x=True
+                       )
 
-    plot3.update_traces(textposition='top left')
+    plot3.update_layout(legend=dict(
+        orientation="h",
+        yanchor="bottom",
+        y=1.02,
+        xanchor="right",
+        x=1
+    ))
 
     plot3.add_shape(
         type="rect",
@@ -234,6 +252,5 @@ with col13[1]:
         y1=y_1,
         line=dict(color="Crimson", width=2)
     )
-
     st.plotly_chart(
         plot3, config={'displayModeBar': False}, use_container_width=True)
