@@ -149,9 +149,12 @@ with col14[0]:
     x_1 = round(impulso_venta["Lift"].max(), 1) + impulso_venta["Lift"].min()
     y_0 = 0
     y_1 = impulso_venta['Venta (B)'].max() * .5
-    impulso_venta['category'] = impulso_venta.apply(
-        lambda x: validation_oportunity(x, x_0, x_1, y_0, y_1), axis=1)
-
+    try:
+        impulso_venta['category'] = impulso_venta.apply(
+            lambda x: validation_oportunity(x, x_0, x_1, y_0, y_1), axis=1)
+    except:
+        impulso_venta['category'] = 'NA'
+        
     plot3 = px.scatter(impulso_venta, x="Lift", y="Venta (B)",
                        color="category", size="Support (B)",
                        hover_data=[
