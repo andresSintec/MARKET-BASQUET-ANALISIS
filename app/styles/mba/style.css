@@ -1,0 +1,20 @@
+div[class="ReactVirtualized__Grid table-top-right"] div {
+    color: white;
+    background-color: #3498db;
+}
+
+tbody th {
+    display: none
+}
+
+#MainMenu {
+    visibility: hidden;
+}
+
+footer {
+    visibility: hidden;
+}
+
+.blank {
+    display: none
+}

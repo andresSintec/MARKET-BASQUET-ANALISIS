@@ -26,10 +26,5 @@
         "ALTA VENTA",
         "MEDIA VENTA",
         "BAJA VENTA"
-    ],
-    "tendencias":[
-        "ALCISTA",
-        "BAJISTA",
-        "ESTABLE"
     ]
 }
