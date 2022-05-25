@@ -1,0 +1,20 @@
+{
+    "Market Basquet Analisis": [
+        {
+            "Analisis de clientes": "/mba/clientes"
+        },
+        {
+            "Analisis por SKU": "/mba/sku"
+        }
+    ],
+    "Promotorias": [
+        {
+            "Calculo de promotorias": "/promotorias/calculo"
+        }
+    ],
+    "Optimización de rutas": [
+        {
+            "Rutas de entrega": "/rutas/optimizacion"
+        }
+    ]   
+}

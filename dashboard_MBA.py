@@ -2,10 +2,20 @@ import os
 import json
 import pandas as pd
 import streamlit as st
-import plotly.express as px
 from pathlib import PurePath
-import plotly.graph_objects as go
 
+def get_color(category):
+    try:
+        if category == 'MUY ALTA VENTA' or category == 'ALTA VENTA':
+            return '#27ae60'
+        elif category == 'MEDIA VENTA':
+            return '#f1c40f'
+        elif category == 'BAJA VENTA':
+            return '#e67e22'
+        else:
+            return "#c0392b"
+    except:
+        return "#c0392b"
 
 @st.cache
 def init():
@@ -15,21 +25,29 @@ def init():
         PurePath(os.getcwd(), 'data', 'sales.csv'), encoding='utf-8')
     relations = pd.read_csv(
         PurePath(os.getcwd(), 'data', 'metrics.csv'), encoding='utf-8')
-    return files, sales, relations
+    stores = pd.read_csv(
+        PurePath(os.getcwd(), 'data', 'tiendas.csv'), encoding='utf-8')
+    return files, sales, relations, stores
 
-
-@st.cache
+# @st.cache
 def set_table():
     df = relations.loc[(relations['estado'] == region) & (
         relations['canal'] == channel) & (relations['gec'] == gec), ['prod_A', 'prod_B', 'lift']]
     df = sales.merge(df, left_on='product', right_on='prod_A', how='inner')
     df = df.sort_values(by='sales')
 
-    values_order_1 = df['product'].unique()[:n_sku]
-    values_order_2 = df['product'].unique()[n_sku * -1:]
+    skus = stores.loc[stores['tienda'] == tienda,['producto','cu','category']]
+    skus = skus.sort_values(by='cu')
+
+
+    values_order_1 = skus['producto'].unique()[:n_sku]
+    values_order_2 = skus['producto'].unique()[n_sku * -1:]
 
     values = []
     index = []
+    colors = []
+    count = 1
+
     for product in values_order_1:
         data = df.loc[df['product'] == product]
         data = data.sort_values(by='lift', ascending=False)
@@ -38,17 +56,41 @@ def set_table():
         index.append(product)
         sub_values = []
         for i in range(0, n_top):
-            ndata = data.iloc[i]
-            sub_values.append(ndata['prod_B'])
-        values.append(sub_values)
+            try:
+                ndata = data.iloc[i]['prod_B']
+                try:
+                    [category] = skus.loc[skus['producto'] == ndata,'category'].values
+                    colors.append((count, 'No. {}'.format(str(i+1)), get_color(category)))
+                except:
+                    colors.append((count, 'No. {}'.format(str(i+1)), get_color("")))
+                sub_values.append(ndata)
+            except:
+                sub_values.append('NA')
 
-    index = pd.Index(index, name="SKU ancla")
+        values.append(sub_values)
+        count += 1
+
+    index = pd.Index(index, name="Top {}".format(n_top))
     df1 = pd.DataFrame(data=values, index=index, columns=[
                        'No. {}'.format(str(x)) for x in range(1, n_top+1)])
+    
+    def highlight(x):
+        ndf1 = pd.DataFrame('', index=x.index, columns=x.columns)
+        for c in colors:
+            color = 'background-color: {}'.format(c[2])
+            ndf1.at[c[0], c[1]] = color
+        return ndf1
+
     df1 = df1.reset_index()
+    df1.index += 1 
+
+    df1 = df1.style.apply(lambda x: highlight(x), axis=None)
 
     values = []
     index = []
+    colors_un = []
+    count = 1
+
     for product in values_order_2:
         data = df.loc[df['product'] == product]
         data = data.sort_values(by='lift', ascending=False)
@@ -57,46 +99,34 @@ def set_table():
         index.append(product)
         sub_values = []
         for i in range(0, n_top):
-            ndata = data.iloc[i]
-            sub_values.append(ndata['prod_B'])
+            try:
+                ndata = data.iloc[i]['prod_B']
+                try:
+                    [category] = skus.loc[skus['producto'] == ndata,'category'].values
+                    colors_un.append((count, 'No. {}'.format(str(i+1)), get_color(category)))
+                except:
+                    colors_un.append((count, 'No. {}'.format(str(i+1)), get_color("")))
+                sub_values.append(ndata)
+            except:
+                sub_values.append('NA')
         values.append(sub_values)
+        count += 1
 
-    index = pd.Index(index, name="SKU ancla")
+    index = pd.Index(index, name="Buttom {}".format(n_top))
     df2 = pd.DataFrame(data=values, index=index, columns=[
                        'No. {}'.format(str(x)) for x in range(1, n_top+1)])
     df2 = df2.reset_index()
+    df2.index += 1 
 
+    def highlight_2(x):
+        ndf2 = pd.DataFrame('', index=x.index, columns=x.columns)
+        for c in colors_un:
+            color = 'background-color: {}'.format(c[2])
+            ndf2.at[c[0], c[1]] = color
+        return ndf2
+
+    df2 = df2.style.apply(lambda x: highlight_2(x), axis=None)
     return df1, df2, df[['product', 'category']]
-
-
-@st.cache
-def set_secund_table():
-    df = relations.loc[(relations['prod_A'] == sku_ancla) & (
-        relations['category_b'] == level_venta), ['prod_B', 'estado', 'canal', 'gec', 'lift', 'sales_b', 'support_b', 'category_b']]
-    if type_order == 'TOP':
-        tor = False
-    else:
-        tor = True
-    df = df.sort_values(by='lift', ascending=tor)
-    df = df.head(No_skus_top)
-    df.rename({'prod_B': 'Producto (B)', 'sales_b': 'Venta (B)',
-                         'lift': 'Lift', 'support_b': 'Support (B)'}, axis=1, inplace=True)
-    df = df.reset_index(drop=True)
-    return df
-
-
-@st.cache
-def set_options():
-    return sales.loc[sales['category'] == sku_segment, 'product'].values
-
-
-@st.cache
-def validation_oportunity(value, x0, x1, y0, y1):
-    if value['Lift'] >= x0 and value['Lift'] <= x1 and value['Venta (B)'] >= y0 and value['Venta (B)'] <= y1:
-        return "Oportunidad de incremento en venta"
-    else:
-        return ""
-
 
 def local_css():
     path = PurePath(os.getcwd(), 'style.css')
@@ -113,7 +143,7 @@ st.set_page_config(page_title="Market Basket Analysis (MBA)",
                    layout='wide',
                    page_icon="🛒")
 
-constants_var, sales, relations = init()
+constants_var, sales, relations, stores = init()
 local_css()
 
 # ---------------------------------------------------------------------------- #
@@ -131,6 +161,7 @@ col2 = st.columns(1)
 col3 = st.columns(1)
 col4 = st.columns(1)
 col5 = st.columns(1)
+col6 = st.columns(1)
 
 col1[0].header("Filtros de informacion")
 
@@ -149,6 +180,9 @@ with col4[0]:
 with col5[0]:
     n_top = st.number_input(min_value=5, max_value=20,
                             value=10, step=5, label="Ranking SKU's (Top / Buttom)")
+with col6[0]:
+    tienda = st.selectbox(
+        label="Tienda", options=stores['tienda'].unique(), index=0)
 
 st.markdown("***")
 
@@ -156,101 +190,21 @@ data_first, data_last, data_f = set_table()
 
 # ---------------------------------------------------------------------------- #
 # --------------------------- Table visualization ---------------------------- #
-col6 = st.columns(1)
-col6[0].header(
-    "Top {} de productos a recomendar al cliente".format(str(n_top)))
+colheader = st.columns(1)
+with colheader[0]:
+    colheader[0].header("Productos sugeridos a recomendar al cliente")
 
+st.markdown("***")
 
-with col6[0]:
+coltable1 = st.columns(1)
+with coltable1[0]:
+    st.subheader("Top {} de productos vendidos al cliente".format(str(n_top)))
     st.dataframe(data_first, height=2000)
 
-col7 = st.columns(1)
-col7[0].header(
-    "Top {} de productos con menor probabilidad de venta".format(str(n_top)))
-
-with col7[0]:
+coltable2 = st.columns(1)
+with coltable2[0]:
+    coltable2[0].subheader(
+    "Bottom {} de productos vendidos al cliente".format(str(n_top)))
     st.dataframe(data_last, height=2000)
 
 st.markdown("***")
-
-# # ---------------------------------------------------------------------------- #
-# # --------------------------- Heatmap Combinaciones -------------------------- #
-
-col8 = st.columns(1)
-col9 = st.columns(1)
-col10 = st.columns(1)
-col11 = st.columns(1)
-col12 = st.columns(1)
-
-col8[0].header("Filtros de informacion")
-
-with col8[0]:
-    sku_segment = st.selectbox(
-        label="Segmento SKU ancla", options=constants_var['segment'], index=0)
-with col9[0]:
-    sku_ancla = st.selectbox(label="SKU ancla",
-                             options=set_options(), index=0)
-with col10[0]:
-    level_venta = st.selectbox(
-        label="Nivel de venta SKU asociado", options=constants_var['segment'], index=0)
-with col11[0]:
-    No_skus_top = st.number_input(
-        min_value=5, max_value=25, value=10, step=5, label="Num SKUs (Top / Button)")
-with col12[0]:
-    type_order = st.selectbox(
-        label="Top / Button Asociados", options=['TOP', 'BUTTON'], index=0)
-
-st.markdown("***")
-
-col13 = st.columns(2)
-col13[0].header("Top {} de productos {} relacionados al producto ancla".format(
-    No_skus_top, 'más' if type_order == 'TOP' else 'menos'))
-data = set_secund_table()
-
-with col13[0]:
-
-    ndata = data[['Producto (B)', 'Venta (B)', 'Lift', 'Support (B)']].copy()
-    st.dataframe(ndata, width=2000, height=2000)
-
-st.markdown("***")
-
-col13[1].header("Oportunidades de Impulso de Productos")
-
-with col13[1]:
-
-    impulso_venta = data.copy()
-
-    x_0 = ((impulso_venta["Lift"].max(
-    )-impulso_venta["Lift"].min())/2)+impulso_venta["Lift"].min()
-    x_1 = round(impulso_venta["Lift"].max(), 1) + impulso_venta["Lift"].min()
-    y_0 = 0
-    y_1 = impulso_venta['Venta (B)'].max() * .5
-
-    impulso_venta['category'] = impulso_venta.apply(
-        lambda x: validation_oportunity(x, x_0, x_1, y_0, y_1), axis=1)
-
-    plot3 = px.scatter(impulso_venta, x="Lift", y="Venta (B)",
-                       color="category", size="Support (B)",
-                       hover_data=[
-                           'Producto (B)', 'category', 'Venta (B)', 'Support (B)'],
-                       log_x=True
-                       )
-
-    plot3.update_layout(legend=dict(
-        orientation="h",
-        yanchor="bottom",
-        y=1.02,
-        xanchor="right",
-        x=1
-    ))
-
-    plot3.add_shape(
-        type="rect",
-        x0=x_0,
-        y0=y_0,
-        x1=x_1,
-        y1=y_1,
-        line=dict(color="Crimson", width=2)
-    )
-    st.plotly_chart(
-        plot3, config={'displayModeBar': False}, use_container_width=True)
