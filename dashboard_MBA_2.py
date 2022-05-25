@@ -149,9 +149,12 @@ with col14[0]:
     x_1 = round(impulso_venta["Lift"].max(), 1) + impulso_venta["Lift"].min()
     y_0 = 0
     y_1 = impulso_venta['Venta (B)'].max() * .5
-    impulso_venta['category'] = impulso_venta.apply(
-        lambda x: validation_oportunity(x, x_0, x_1, y_0, y_1), axis=1)
-
+    try:
+        impulso_venta['category'] = impulso_venta.apply(
+            lambda x: validation_oportunity(x, x_0, x_1, y_0, y_1), axis=1)
+    except:
+        impulso_venta['category'] = 'NA'
+        
     plot3 = px.scatter(impulso_venta, x="Lift", y="Venta (B)",
                        color="category", size="Support (B)",
                        hover_data=[
@@ -185,7 +188,8 @@ with col15[0]:
     ndata = data[['Producto (B)','tendencia', 'tipo']].copy()
     ndata['tendencia'] = ndata['tendencia'].apply(lambda x: json.loads(x))
     ndata =  ndata.explode('tendencia')
-    ndata['Fecha'] = ['2018-10-01','2018-11-01','2018-12-01'] * len(ndata['Producto (B)'].unique())
+    print()
+    ndata['Fecha'] = ['2018-10-01','2018-11-01','2018-12-01'] * int(ndata.shape[0]/3)
 
     plot4 = px.line(ndata,x="Fecha", y="tendencia", color="Producto (B)",markers=True,
                         hover_data=['Producto (B)','Fecha' ,'tipo'],
