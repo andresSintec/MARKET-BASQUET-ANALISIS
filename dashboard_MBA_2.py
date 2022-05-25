@@ -136,6 +136,7 @@ data = set_secund_table()
 
 with col13[0]:
     ndata = data[['Producto (B)', 'Venta (B)', 'Lift', 'Support (B)']].copy()
+    ndata.index += 1
     st.dataframe(ndata, width=2000, height=2000)
 
 st.markdown("***")
@@ -154,7 +155,7 @@ with col14[0]:
             lambda x: validation_oportunity(x, x_0, x_1, y_0, y_1), axis=1)
     except:
         impulso_venta['category'] = 'NA'
-        
+
     plot3 = px.scatter(impulso_venta, x="Lift", y="Venta (B)",
                        color="category", size="Support (B)",
                        hover_data=[
