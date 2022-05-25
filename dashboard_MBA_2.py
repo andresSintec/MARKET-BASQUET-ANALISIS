@@ -185,7 +185,8 @@ with col15[0]:
     ndata = data[['Producto (B)','tendencia', 'tipo']].copy()
     ndata['tendencia'] = ndata['tendencia'].apply(lambda x: json.loads(x))
     ndata =  ndata.explode('tendencia')
-    ndata['Fecha'] = ['2018-10-01','2018-11-01','2018-12-01'] * len(ndata['Producto (B)'].unique())
+    print()
+    ndata['Fecha'] = ['2018-10-01','2018-11-01','2018-12-01'] * int(ndata.shape[0]/3)
 
     plot4 = px.line(ndata,x="Fecha", y="tendencia", color="Producto (B)",markers=True,
                         hover_data=['Producto (B)','Fecha' ,'tipo'],
