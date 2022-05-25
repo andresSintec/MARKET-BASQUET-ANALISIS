@@ -13,4 +13,4 @@ COPY . /app
 WORKDIR /app
 
 # run it!
-ENTRYPOINT ["streamlit", "run", "dashboard_MBA.py", "--server.port=8080", "--server.address=0.0.0.0"]
+ENTRYPOINT ["streamlit", "run", "dashboard_MBA_2.py", "--server.port=8080", "--server.address=0.0.0.0"]
