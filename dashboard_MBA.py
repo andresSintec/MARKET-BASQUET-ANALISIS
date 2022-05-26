@@ -40,8 +40,8 @@ def set_table():
     skus = skus.sort_values(by='cu')
 
 
-    values_order_1 = skus['producto'].unique()[:n_sku]
-    values_order_2 = skus['producto'].unique()[n_sku * -1:]
+    values_order_1 = skus['producto'].unique() #[:n_sku]
+    values_order_2 = values_order_1[::-1]
 
     values = []
     index = []
@@ -53,22 +53,26 @@ def set_table():
         data = data.sort_values(by='lift', ascending=False)
         data = data.drop_duplicates()
         data = data.head(n_top)
-        index.append(product)
         sub_values = []
         for i in range(0, n_top):
             try:
                 ndata = data.iloc[i]['prod_B']
+                sub_values.append(ndata)
                 try:
                     [category] = skus.loc[skus['producto'] == ndata,'category'].values
                     colors.append((count, 'No. {}'.format(str(i+1)), get_color(category)))
                 except:
                     colors.append((count, 'No. {}'.format(str(i+1)), get_color("")))
-                sub_values.append(ndata)
             except:
-                sub_values.append('NA')
+                pass
 
-        values.append(sub_values)
-        count += 1
+        if len(sub_values) == n_top:
+            index.append(product)
+            values.append(sub_values)
+            count += 1
+            if len(index) == n_sku:
+                break
+        
 
     index = pd.Index(index, name="Top {}".format(n_top))
     df1 = pd.DataFrame(data=values, index=index, columns=[
@@ -96,7 +100,6 @@ def set_table():
         data = data.sort_values(by='lift', ascending=False)
         data = data.drop_duplicates()
         data = data.head(n_top)
-        index.append(product)
         sub_values = []
         for i in range(0, n_top):
             try:
@@ -108,9 +111,14 @@ def set_table():
                     colors_un.append((count, 'No. {}'.format(str(i+1)), get_color("")))
                 sub_values.append(ndata)
             except:
-                sub_values.append('NA')
-        values.append(sub_values)
-        count += 1
+                pass
+
+        if len(sub_values) == n_top:
+            index.append(product)
+            values.append(sub_values)
+            count += 1
+            if len(index) == n_sku:
+                break
 
     index = pd.Index(index, name="Buttom {}".format(n_top))
     df2 = pd.DataFrame(data=values, index=index, columns=[
