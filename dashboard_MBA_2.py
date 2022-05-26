@@ -135,7 +135,7 @@ col13[0].header("Top {} de productos {} relacionados al producto ancla".format(
 data = set_secund_table()
 
 with col13[0]:
-    ndata = data[['Producto (B)', 'Venta (B)', 'Lift', 'Support (B)']].copy()
+    ndata = data[['Producto (B)', 'Venta (B)']].copy()
     ndata.index += 1
     st.dataframe(ndata, width=2000, height=2000)
 
